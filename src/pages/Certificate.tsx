@@ -6,13 +6,20 @@ import { useFirebase } from '../contexts/FirebaseContext';
 import { cn } from '../lib/utils';
 
 export default function CertificatePage() {
-  const { profile } = useFirebase();
-  const studentName = profile?.fullName || 'Alex Johnson';
-  const completionDate = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const { user, profile } = useFirebase();
+  const studentName = profile?.fullName || user?.displayName || 'Alex Johnson';
+  const rawDate = profile?.courseCompletedAt;
+  const completionDate = rawDate 
+    ? (rawDate.toDate ? rawDate.toDate() : new Date(rawDate)).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      })
+    : new Date().toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+      });
 
   return (
     <div className="space-y-12 max-w-5xl mx-auto pb-20">

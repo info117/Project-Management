@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BookOpen, Trophy, Clock, Zap, Target, ArrowRight, BrainCircuit, Sparkles, BarChart as BarChartIcon, Activity, User, Video } from 'lucide-react';
+import { BookOpen, Trophy, Clock, Zap, Target, ArrowRight, BrainCircuit, Sparkles, BarChart as BarChartIcon, Activity, User, Video, Award, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useFirebase } from '../contexts/FirebaseContext';
@@ -26,6 +26,7 @@ import {
 export default function Dashboard() {
   const { user, profile } = useFirebase();
   const [progressData, setProgressData] = useState<any[]>([]);
+  const [vaultCredentials, setVaultCredentials] = useState<any[]>([]);
   const [aiAdvice, setAiAdvice] = useState<string[]>([]);
   const [isAdviceLoading, setIsAdviceLoading] = useState(false);
 
@@ -41,6 +42,24 @@ export default function Dashboard() {
         ...doc.data()
       }));
       setProgressData(data);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Sync with 'Vault_Credentials'
+  useEffect(() => {
+    if (!user) return;
+    
+    const vaultRef = collection(db, 'users', user.uid, 'vault_credentials');
+    const q = query(vaultRef);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as any[];
+      data.sort((a, b) => (b.awardedAt?.seconds || 0) - (a.awardedAt?.seconds || 0));
+      setVaultCredentials(data);
     });
 
     return () => unsubscribe();
@@ -272,7 +291,7 @@ export default function Dashboard() {
           </div>
 
           {/* Cognitive Mastery Path (Visual Roadmap) */}
-          <div className="glass-card p-10 flex flex-col relative overflow-hidden group">
+          <div className="glass-card p-10 flex flex-col relative overflow-hidden group mb-8">
             <div className="absolute top-0 right-0 p-10 opacity-[0.02] group-hover:opacity-[0.05] transition-opacity pointer-events-none">
               <BrainCircuit size={300} />
             </div>
@@ -353,7 +372,53 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* New: Video Lab Entry Point */}
+          {/* Vault Credential Section */}
+          <div className="glass-card p-10 flex flex-col relative overflow-hidden group mb-8">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-[10px] font-black text-white uppercase tracking-[0.5em] mb-2 flex items-center gap-2">
+                  <Award size={16} className="text-brand" />
+                  Vault Credentials
+                </h3>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Auto-generated certifications and mastery badges.</p>
+              </div>
+              <Link to="/certificate" className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[9px] font-black text-white uppercase tracking-tighter hover:bg-brand hover:border-brand transition-all">
+                View Full Certificate
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {vaultCredentials.length > 0 ? vaultCredentials.map((cred) => (
+                <motion.div 
+                  key={cred.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="bg-stone-900/50 border border-white/5 rounded-2xl p-6 flex flex-col items-center text-center group/cred hover:border-brand/30 transition-all"
+                >
+                  <div className={cn(
+                    "w-12 h-12 rounded-full mb-4 flex items-center justify-center transition-all duration-500",
+                    cred.type === 'certificate' ? "bg-brand/20 text-brand scale-110" : "bg-orange-500/10 text-orange-400 group-hover/cred:bg-orange-500/20"
+                  )}>
+                    {cred.type === 'certificate' ? <Award size={24} /> : <Trophy size={20} />}
+                  </div>
+                  <h4 className="text-[10px] font-black text-white uppercase tracking-tight mb-1">{cred.title}</h4>
+                  <p className="text-[8px] text-stone-500 font-bold uppercase tracking-widest">
+                    Awarded {cred.awardedAt ? (cred.awardedAt.toDate ? cred.awardedAt.toDate() : new Date(cred.awardedAt)).toLocaleDateString() : 'N/A'}
+                  </p>
+                  {cred.type === 'certificate' && (
+                    <Link to="/certificate" className="mt-4 text-[9px] font-bold text-brand uppercase tracking-widest border-b border-brand/0 hover:border-brand/100 transition-all">
+                      Download PDF
+                    </Link>
+                  )}
+                </motion.div>
+              )) : (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-3xl opacity-40">
+                  <ShieldCheck size={32} className="text-stone-700 mb-4" />
+                  <p className="text-[10px] uppercase font-black text-stone-600 tracking-widest">No Credentials Minted Yet</p>
+                </div>
+              )}
+            </div>
+          </div>
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { PM_MODULES } from '../constants/courseData';
-import { ArrowLeft, Play, FileText, Check, BrainCircuit, BookOpen, Clock, GraduationCap, Brain, Award, Sparkles } from 'lucide-react';
+import { ArrowLeft, Play, FileText, Check, BrainCircuit, BookOpen, Clock, GraduationCap, Brain, Award, Sparkles, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/src/lib/utils';
 import { QuizComponent } from '../components/QuizComponent';
+import { useFirebase } from '../contexts/FirebaseContext';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const MODULE_CONTENT: Record<number, any[]> = {
   1: [
@@ -1937,17 +1940,133 @@ Construct a foundational blueprint for your Mobile Health App project using ever
 export default function ModuleDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, profile } = useFirebase();
   const moduleInfo = PM_MODULES.find(m => m.id === Number(id));
   const lessons = MODULE_CONTENT[Number(id) as keyof typeof MODULE_CONTENT ] || [];
   const [activeLesson, setActiveLesson] = useState(lessons[0]);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [userProgress, setUserProgress] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Sync with Firestore Progress
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const fetchProgress = async () => {
+      try {
+        const progressDocRef = doc(db, 'users', user.uid, 'progress', id);
+        const progressDoc = await getDoc(progressDocRef);
+        
+        if (progressDoc.exists()) {
+          setUserProgress(progressDoc.data());
+        } else {
+          // Initialize progress for this module if it doesn't exist
+          const initialProgress = {
+            moduleId: Number(id),
+            status: 'In Progress',
+            completedLessons: [],
+            updatedAt: serverTimestamp()
+          };
+          await setDoc(progressDocRef, initialProgress);
+          setUserProgress(initialProgress);
+        }
+      } catch (error) {
+        handleFirestoreError(error, OperationType.GET, `users/${user.uid}/progress/${id}`);
+      }
+    };
+
+    fetchProgress();
+  }, [user, id]);
+
+  const markLessonComplete = async (lessonId: string, score?: number) => {
+    if (!user || !id || isUpdating) return;
+    setIsUpdating(true);
+
+    try {
+      const progressDocRef = doc(db, 'users', user.uid, 'progress', id);
+      const currentCompleted = userProgress?.completedLessons || [];
+      
+      if (!currentCompleted.includes(lessonId)) {
+        const updatedCompleted = [...currentCompleted, lessonId];
+        const isModuleComplete = updatedCompleted.length >= lessons.length;
+        
+        const updateData: any = {
+          completedLessons: updatedCompleted,
+          updatedAt: serverTimestamp()
+        };
+
+        if (score !== undefined) {
+          updateData.quizScore = Math.max(userProgress?.quizScore || 0, score);
+        }
+
+        if (isModuleComplete) {
+          updateData.status = 'Completed';
+          updateData.completedAt = serverTimestamp();
+
+          // AUTO-UNLOCK NEXT MODULE
+          const nextModuleId = Number(id) + 1;
+          if (nextModuleId <= PM_MODULES.length) {
+            const nextProgressRef = doc(db, 'users', user.uid, 'progress', nextModuleId.toString());
+            const nextProgressDoc = await getDoc(nextProgressRef);
+            if (!nextProgressDoc.exists()) {
+              await setDoc(nextProgressRef, {
+                moduleId: nextModuleId,
+                status: 'In Progress',
+                completedLessons: [],
+                updatedAt: serverTimestamp()
+              });
+            }
+          }
+
+          // Generate Vault Credential
+          const credentialRef = doc(db, 'users', user.uid, 'vault_credentials', `module_${id}`);
+          await setDoc(credentialRef, {
+            type: 'badge',
+            title: moduleInfo?.title,
+            moduleId: Number(id),
+            awardedTo: profile?.fullName || user.displayName || 'Scholar',
+            awardedAt: serverTimestamp()
+          });
+
+          // Check if all modules are complete to award main certificate
+          // This would be better in a background job or a check after each module completion
+          if (Number(id) === PM_MODULES.length) {
+            const certRef = doc(db, 'users', user.uid, 'vault_credentials', 'course_cert');
+            await setDoc(certRef, {
+              type: 'certificate',
+              title: 'Master Project Management',
+              awardedTo: profile?.fullName || user.displayName || 'Scholar',
+              awardedAt: serverTimestamp()
+            });
+            
+            // Also update profile
+            const profileRef = doc(db, 'users', user.uid);
+            await updateDoc(profileRef, {
+              courseCompletedAt: serverTimestamp()
+            });
+          }
+        }
+
+        await updateDoc(progressDocRef, updateData);
+        setUserProgress((prev: any) => ({ ...prev, ...updateData }));
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}/progress/${id}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Reset quiz when switching lessons
-  React.useEffect(() => {
+  useEffect(() => {
     setShowQuiz(false);
   }, [activeLesson]);
 
   if (!moduleInfo) return <div className="text-white p-8">Module not found.</div>;
+
+  const isLessonCompleted = (lessonId: string) => {
+    return userProgress?.completedLessons?.includes(lessonId);
+  };
 
   return (
     <div className="space-y-8">
@@ -1981,7 +2100,7 @@ export default function ModuleDetail() {
                   questions={activeLesson.questions || []}
                   onClose={() => setShowQuiz(false)}
                   onComplete={(score) => {
-                    console.log('Quiz score:', score);
+                    markLessonComplete(activeLesson.id, score);
                   }}
                 />
               </motion.div>
@@ -2087,20 +2206,34 @@ export default function ModuleDetail() {
             <div className="markdown-body prose prose-invert prose-sm max-w-none text-stone-300 leading-relaxed mb-8">
               <ReactMarkdown>{activeLesson.reading}</ReactMarkdown>
             </div>
-          <div className="flex gap-3">
-            {activeLesson.questions && activeLesson.questions.length > 0 && (
+            <div className="flex gap-3">
               <button 
-                onClick={() => setShowQuiz(true)}
-                className="flex items-center gap-3 px-8 py-3 bg-orange-500 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 group"
+                onClick={async () => {
+                  if (!isLessonCompleted(activeLesson.id)) {
+                    await markLessonComplete(activeLesson.id);
+                  }
+                }}
+                disabled={isUpdating || isLessonCompleted(activeLesson.id)}
+                className={cn(
+                  "flex items-center gap-3 px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl group",
+                  isLessonCompleted(activeLesson.id) 
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
+                    : "bg-stone-800 border border-white/5 text-stone-400 hover:text-white"
+                )}
               >
-                <Brain size={16} className="group-hover:scale-110 transition-transform" />
-                Take Quiz
+                {isUpdating ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                {isLessonCompleted(activeLesson.id) ? 'Lesson Completed' : 'Mark as Complete'}
               </button>
-            )}
-            <button className="flex items-center gap-2 px-8 py-3 bg-stone-800 border border-white/5 rounded-xl text-[10px] font-black text-stone-400 uppercase tracking-widest hover:text-white transition-all">
-              Case Study
-            </button>
-          </div>
+              {activeLesson.questions && activeLesson.questions.length > 0 && (
+                <button 
+                  onClick={() => setShowQuiz(true)}
+                  className="flex items-center gap-3 px-8 py-3 bg-orange-500 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 group"
+                >
+                  <Brain size={16} className="group-hover:scale-110 transition-transform" />
+                  Take Quiz
+                </button>
+              )}
+            </div>
         </div>
       </motion.div>
     )}
@@ -2115,47 +2248,50 @@ export default function ModuleDetail() {
               Curriculum Progress
             </h3>
             <div className="space-y-4">
-              {lessons.map((lesson) => (
-                <button 
-                  key={lesson.id}
-                  onClick={() => setActiveLesson(lesson)}
-                  className={cn(
-                    "w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group",
-                    activeLesson.id === lesson.id ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5"
-                  )}
-                >
-                  <div className={cn(
-                    "mt-1 w-4 h-4 rounded-full border flex items-center justify-center transition-all",
-                    lesson.completed ? "bg-emerald-500/20 border-emerald-500/50" : 
-                    activeLesson.id === lesson.id ? "bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40" : "border-stone-600"
-                  )}>
-                    {lesson.completed && <Check size={10} className="text-emerald-500" strokeWidth={4} />}
-                  </div>
-                  <div>
-                    <p className={cn(
-                      "text-xs font-semibold uppercase tracking-tight",
-                      activeLesson.id === lesson.id ? "text-white" : "text-stone-400"
+              {lessons.map((lesson) => {
+                const completed = isLessonCompleted(lesson.id);
+                return (
+                  <button 
+                    key={lesson.id}
+                    onClick={() => setActiveLesson(lesson)}
+                    className={cn(
+                      "w-full flex items-start gap-4 p-3 rounded-xl transition-all text-left group",
+                      activeLesson.id === lesson.id ? "bg-white/10 ring-1 ring-white/10" : "hover:bg-white/5"
+                    )}
+                  >
+                    <div className={cn(
+                      "mt-1 w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                      completed ? "bg-emerald-500/20 border-emerald-500/50" : 
+                      activeLesson.id === lesson.id ? "bg-orange-500 border-orange-400 shadow-lg shadow-orange-500/40" : "border-stone-600"
                     )}>
-                      {lesson.title}
-                    </p>
-                    <p className={cn(
-                      "text-[10px] uppercase font-bold tracking-widest mt-1",
-                      lesson.completed ? "text-emerald-400" : "text-stone-500"
-                    )}>
-                      {lesson.completed ? 'Completed' : lesson.type}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                      {completed && <Check size={10} className="text-emerald-500" strokeWidth={4} />}
+                    </div>
+                    <div>
+                      <p className={cn(
+                        "text-xs font-semibold uppercase tracking-tight",
+                        activeLesson.id === lesson.id ? "text-white" : "text-stone-400"
+                      )}>
+                        {lesson.title}
+                      </p>
+                      <p className={cn(
+                        "text-[10px] uppercase font-bold tracking-widest mt-1",
+                        completed ? "text-emerald-400" : "text-stone-500"
+                      )}>
+                        {completed ? 'Completed' : lesson.type}
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             
             <div className="mt-8 pt-8 border-t border-white/10">
                <div className="flex justify-between text-[11px] mb-2 font-bold uppercase">
                  <span className="text-stone-500 tracking-widest">Overall Mastery</span>
-                 <span className="text-white">42%</span>
+                 <span className="text-white">{Math.round(((userProgress?.completedLessons?.length || 0) / lessons.length) * 100)}%</span>
                </div>
                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden p-0.5 border border-white/5">
-                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-600 w-[42%] rounded-full transition-all duration-1000"></div>
+                 <div className="h-full bg-gradient-to-r from-orange-500 to-amber-600 rounded-full transition-all duration-1000" style={{ width: `${Math.round(((userProgress?.completedLessons?.length || 0) / lessons.length) * 100)}%` }}></div>
                </div>
             </div>
           </div>
