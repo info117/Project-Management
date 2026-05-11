@@ -7,7 +7,7 @@ import Stripe from 'stripe';
 import admin from 'firebase-admin';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import firebaseConfig from './firebase-applet-config.json' with { type: 'json' };
+import { readFile } from 'fs/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,43 +15,65 @@ const __dirname = path.dirname(__filename);
 // Initialize Firebase Admin
 let adminDb: admin.firestore.Firestore;
 
-if (!admin.apps.length) {
-  const adminApp = admin.initializeApp({
-    projectId: firebaseConfig.projectId,
-  });
-  // @ts-ignore - databaseId is supported in v12+ but types might be trailing
-  adminDb = adminApp.firestore(firebaseConfig.firestoreDatabaseId || undefined);
-} else {
-  // @ts-ignore
-  adminDb = admin.app().firestore(firebaseConfig.firestoreDatabaseId || undefined);
-}
-
-let stripeClient: Stripe | null = null;
-
-function getStripe(): Stripe {
-  if (!stripeClient) {
-    let key = process.env.STRIPE_SECRET_KEY;
-    if (!key) {
-      throw new Error('STRIPE_SECRET_KEY environment variable is required');
-    }
-    
-    // Aggressively clean the key: remove whitespace, quotes, and leading dots (common copy-paste errors)
-    key = key.trim().replace(/^['".]+/, '').replace(/['"]+$/, '');
-    
-    stripeClient = new Stripe(key);
-  }
-  return stripeClient;
-}
-
 async function startServer() {
   const app = express();
-  app.set('trust proxy', 1);
   const PORT = 3000;
+  
+  console.log('--- SYSTEM INITIALIZATION START ---');
+  
+  let firebaseConfig: any = {};
+  try {
+    const configData = await readFile(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf-8');
+    firebaseConfig = JSON.parse(configData);
+    console.log('Successfully loaded firebase-applet-config.json');
+  } catch (err) {
+    console.error('Failed to load firebase-applet-config.json:', err);
+    firebaseConfig = {
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      firestoreDatabaseId: process.env.FIREBASE_DATABASE_ID
+    };
+  }
+
+  if (!admin.apps.length && firebaseConfig.projectId) {
+    try {
+      const adminApp = admin.initializeApp({
+        projectId: firebaseConfig.projectId,
+      });
+      // @ts-ignore
+      adminDb = adminApp.firestore(firebaseConfig.firestoreDatabaseId || undefined);
+    } catch (err) {
+      console.error('Firebase Admin initialization failed:', err);
+    }
+  } else if (admin.apps.length) {
+    // @ts-ignore
+    adminDb = admin.app().firestore(firebaseConfig.firestoreDatabaseId || undefined);
+  }
+
+  let stripeClient: Stripe | null = null;
+
+  function getStripe(): Stripe {
+    if (!stripeClient) {
+      let key = process.env.STRIPE_SECRET_KEY;
+      if (!key) {
+        throw new Error('STRIPE_SECRET_KEY environment variable is required');
+      }
+      
+      // Aggressively clean the key: remove whitespace, quotes, and leading dots (common copy-paste errors)
+      key = key.trim().replace(/^['".]+/, '').replace(/['"]+$/, '');
+      
+      stripeClient = new Stripe(key);
+    }
+    return stripeClient;
+  }
+
+  console.log('Express application instance created');
+  app.set('trust proxy', 1);
 
   // Security Headers
   app.use(helmet({
     contentSecurityPolicy: false, // Disable CSP so Vite/Preview works correctly
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false,
+    frameguard: false,
   }));
 
   // Generic Rate Limiting

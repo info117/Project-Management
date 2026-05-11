@@ -427,6 +427,8 @@ export default function VideoLab() {
                   <video
                     src={videoUrl}
                     controls
+                    playsInline
+                    crossOrigin="anonymous"
                     className="w-full h-full object-cover"
                     poster="https://picsum.photos/seed/pmlab/1920/1080?blur=10"
                   />

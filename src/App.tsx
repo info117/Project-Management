@@ -13,8 +13,7 @@ import Settings from './pages/Settings';
 import Subscription from './pages/Subscription';
 import { FirebaseProvider, useFirebase } from './contexts/FirebaseContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { LogIn } from 'lucide-react';
-
+import { Login } from './components/Login';
 import TrialGuard from './components/TrialGuard';
 
 function ProtectedRoutes() {
@@ -29,25 +28,7 @@ function ProtectedRoutes() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-bg-deep">
-        <div className="glass-card p-12 text-center max-w-md w-full space-y-8">
-          <div className="space-y-4">
-            <h1 className="text-4xl font-bold text-white">Project Management AI</h1>
-            <p className="text-stone-400 text-sm leading-relaxed">
-              Project Management AI™ is an AI-powered platform for training and workforce development—helping you upskill talent, track performance, and turn learning into measurable productivity.
-            </p>
-          </div>
-          <button 
-            onClick={login}
-            className="w-full btn-primary flex items-center justify-center gap-3 py-4"
-          >
-            <span className="bg-white/20 p-1.5 rounded-lg"><LogIn size={20} /></span>
-            Continue with Google
-          </button>
-        </div>
-      </div>
-    );
+    return <Login />;
   }
 
   return (
