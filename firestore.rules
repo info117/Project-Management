@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- PRIMITIVES ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    
+    // Admin check - relies on a document existing in the /admins/ collection
+    function isAdmin() { 
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // --- VALIDATION HELPERS ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['fullName', 'email'])
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100
+        && data.email is string && data.email.size() <= 100
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 20))
+        && (!('subscriptionStatus' in data) || (data.subscriptionStatus is string))
+        && (!('plan' in data) || (data.plan is string))
+        && (!('verifiedStatus' in data) || (data.verifiedStatus is bool))
+        && (!('idDocumentUrl' in data) || (data.idDocumentUrl is string && data.idDocumentUrl.size() <= 1000));
+    }
+
+    // Check if the user is attempting to set privileged fields
+    function hasNoPrivilegedFields(data) {
+      return !data.keys().hasAny(['subscriptionStatus', 'plan', 'verifiedStatus', 'role']);
+    }
+
+    function isValidProgress(data) {
+      return data.keys().hasAll(['moduleId', 'status'])
+        && data.moduleId is int
+        && data.status in ['In Progress', 'Completed']
+        && (!('quizScore' in data) || (data.quizScore is int && data.quizScore >= 0 && data.quizScore <= 100))
+        && (!('videoWatched' in data) || (data.videoWatched is bool))
+        && (!('updatedAt' in data) || (data.updatedAt == request.time));
+    }
+
+    function isValidCertificate(data) {
+      return data.keys().hasAll(['userId', 'issueDate', 'verificationHash'])
+        && data.userId is string
+        && data.issueDate is timestamp
+        && data.verificationHash is string && data.verificationHash.size() <= 256;
+    }
+
+    // --- COLLECTIONS ---
+
+    // Users Collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) 
+        && isValidUser(incoming()) 
+        && hasNoPrivilegedFields(incoming())
+        && incoming().email == request.auth.token.email;
+      
+      allow update: if (isOwner(userId) || isAdmin()) 
+        && isValidUser(incoming())
+        && (isAdmin() || (
+            incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'idDocumentUrl', 'updatedAt'])
+            && incoming().email == existing().email  // Email is immutable for users
+            && (!('subscriptionStatus' in incoming()) || (incoming().subscriptionStatus == existing().subscriptionStatus)) // Subscription is immutable for users
+            && (!('plan' in incoming()) || (incoming().plan == existing().plan)) // Plan is immutable for users
+        ));
+
+      // User Progress Subcollection
+      match /progress/{progressId} {
+        allow list: if isOwner(userId) || isAdmin();
+        allow get: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId) && isValidId(progressId) && isValidProgress(incoming());
+        allow update: if (isOwner(userId) || isAdmin()) 
+          && isValidProgress(incoming())
+          && (isAdmin() || incoming().diff(existing()).affectedKeys().hasOnly(['status', 'quizScore', 'videoWatched', 'updatedAt', 'completionDate']));
+      }
+    }
+
+    // Certificates Collection
+    match /certificates/{certId} {
+      allow get: if true; // Publicly verifiable
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Only Admin or System (implemented via Admin logic here) can create/update certs
+      allow create: if isAdmin() && isValidCertificate(incoming());
+      allow update: if isAdmin() && isValidCertificate(incoming());
+    }
+  }
+}

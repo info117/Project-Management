@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Stores user profile and identity verification status.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "verifiedStatus": { "type": "boolean" },
+        "idDocumentUrl": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email"]
+    },
+    "Progress": {
+      "title": "Module Progress",
+      "description": "Tracks progress for specific modules and lessons.",
+      "type": "object",
+      "properties": {
+        "moduleId": { "type": "integer" },
+        "subjectId": { "type": "string" },
+        "videoWatched": { "type": "boolean" },
+        "quizScore": { "type": "integer" },
+        "completionDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["In Progress", "Completed"] },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["moduleId", "status"]
+    },
+    "Certificate": {
+      "title": "Digital Certificate",
+      "description": "System-signed certificate for course completion.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "issueDate": { "type": "string", "format": "date-time" },
+        "verificationHash": { "type": "string" },
+        "moduleIds": { "type": "array", "items": { "type": "integer" } }
+      },
+      "required": ["userId", "issueDate", "verificationHash"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profile data."
+    },
+    "users/{userId}/progress/{progressId}": {
+      "schema": "Progress",
+      "description": "Progress tracking for specific modules."
+    },
+    "certificates/{certId}": {
+      "schema": "Certificate",
+      "description": "Public certificates for verification."
+    }
+  }
+}

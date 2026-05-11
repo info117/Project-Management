@@ -1,0 +1,184 @@
+{
+  "course_metadata": {
+    "title": "PROJECT MANAGEMENT - PMBOK 7 Professional Certification Prep",
+    "version": "1.0",
+    "total_modules": 10,
+    "total_videos": 22,
+    "estimated_duration_hours": 45,
+    "certification_alignment": "PMI PMP/CAPM PMBOK 7"
+  },
+  "modules": [
+    {
+      "module_id": "PM-01",
+      "title": "Initiation: Value & Stakeholders",
+      "domain": "Stakeholder Performance Domain",
+      "videos": [
+        {
+          "url": "https://youtu.be/LxosjJcysqI",
+          "title": "Mastering Stakeholder Engagement in PMBOK 7",
+          "duration": "14:22",
+          "key_concepts": ["Power/Interest Grid", "Stakeholder Engagement Matrix", "Influence Mapping"]
+        },
+        {
+          "url": "https://youtu.be/XWvIK6L9_u4",
+          "title": "Business Case & Project Feasibility",
+          "duration": "12:05",
+          "key_concepts": ["ROI/NPV", "Strategic Alignment", "Economic Feasibility"]
+        }
+      ],
+      "learning_objectives": [
+        "Identify and analyze stakeholders using PMBOK 7 principles",
+        "Construct a value-driven business case",
+        "Establish strategic alignment for new projects"
+      ],
+      "knowledge_checks": [
+        {
+          "question": "Which artifact justifies the project investment based on strategic goals?",
+          "options": ["WBS", "Project Charter", "Business Case", "Scope Statement"],
+          "correct": "Business Case",
+          "explanation": "The Business Case provides the financial and strategic justification."
+        }
+      ]
+    },
+    {
+      "module_id": "PM-02",
+      "title": "Planning: The Planning Domain",
+      "domain": "Planning Performance Domain",
+      "videos": [
+        {
+          "url": "https://youtu.be/vB_MND5Dxy8",
+          "title": "Developing the Project Management Plan",
+          "duration": "10:45",
+          "key_concepts": ["Integrated Planning", "Baseline Creation", "Component Plans"]
+        },
+        {
+          "url": "https://youtu.be/Z-i28z5nZ2w",
+          "title": "WBS Construction & Decomposition",
+          "duration": "08:30",
+          "key_concepts": ["100% Rule", "Work Packages", "Control Accounts"]
+        }
+      ],
+      "learning_objectives": [
+        "Design adaptive and predictive planning models",
+        "Create a comprehensive Work Breakdown Structure",
+        "Integrate cross-functional planning artifacts"
+      ]
+    },
+    {
+      "module_id": "PM-03",
+      "title": "Delivery: Procurement & Execution",
+      "domain": "Project Work & Delivery Domains",
+      "videos": [
+        {
+          "url": "https://youtu.be/YToOn9CIdBw",
+          "title": "Modern Procurement Strategies",
+          "duration": "11:15",
+          "key_concepts": ["Make-or-Buy Analysis", "Vendor Selection", "Agile Contracts"]
+        }
+      ],
+      "learning_objectives": [
+        "Manage vendor relationships as partnerships",
+        "Execute work following the delivery domain principles",
+        "Measure output vs outcome value"
+      ]
+    },
+    {
+      "module_id": "PM-04",
+      "title": "Uncertainty: Risk Management",
+      "domain": "Uncertainty Performance Domain",
+      "videos": [
+        {
+          "url": "https://youtu.be/PZ1v5p0l5I8",
+          "title": "Risk Management Framework",
+          "duration": "13:40",
+          "key_concepts": ["Risk Appetite", "Mitigation Strategies", "Opportunity Management"]
+        }
+      ],
+      "learning_objectives": [
+        "Identify and prioritize project risks",
+        "Develop proactive mitigation plans",
+        "Navigate project ambiguity"
+      ]
+    },
+    {
+      "module_id": "PM-05",
+      "title": "Measurement: Tracking & Costing",
+      "domain": "Measurement Performance Domain",
+      "videos": [],
+      "learning_objectives": ["Implement EVM", "Create performance dashboards", "Track outcome-based metrics"]
+    },
+    {
+      "module_id": "PM-06",
+      "title": "Team: Staff & Leadership",
+      "domain": "Team Performance Domain",
+      "videos": [],
+      "learning_objectives": ["Foster psychological safety", "Implement servant leadership", "Manage global team dynamics"]
+    },
+    {
+      "module_id": "PM-07",
+      "title": "Quality: Standards & Fitness",
+      "domain": "Delivery & Development Domain",
+      "videos": [],
+      "learning_objectives": ["Define fitness for purpose", "Apply Six Sigma principles", "Audit quality standards"]
+    },
+    {
+      "module_id": "PM-08",
+      "title": "Integration: System Thinking",
+      "domain": "Integration Domain",
+      "videos": [],
+      "learning_objectives": ["Analyze feedback loops", "Integrate complex systems", "Manage holistic project health"]
+    },
+    {
+      "module_id": "PM-09",
+      "title": "Timeline & Flow Efficiency",
+      "domain": "Planning & Work Domain",
+      "videos": [],
+      "learning_objectives": ["Optimize cycle time", "Predict bottlenecks", "Manage delivery cadence"]
+    },
+    {
+      "module_id": "PM-10",
+      "title": "Change: Adaptability Domain",
+      "domain": "Change & Adaptability Domain",
+      "videos": [],
+      "learning_objectives": ["Master the change curve", "Drive institutional commitment", "Adapt behavioral strategies"]
+    }
+  ],
+  "exam_resources": [
+    {
+      "resource_id": "EXAM-01",
+      "title": "180 Scenarios Q&A",
+      "video_url": "https://youtu.be/TZMum9cuoJY",
+      "question_count": 180,
+      "difficulty": "Intermediate",
+      "focus": "Situational Analysis",
+      "type": "Situational judgment practice"
+    },
+    {
+      "resource_id": "EXAM-02",
+      "title": "Full Tutorial Review",
+      "video_url": "https://youtu.be/xocaZJaMFvM",
+      "difficulty": "Advanced",
+      "focus": "Comprehensive Review",
+      "type": "Comprehensive exam preparation"
+    },
+    {
+      "resource_id": "EXAM-03",
+      "title": "1000 Question Bank (Q&A)",
+      "video_url": "https://youtu.be/0XOlHXtjIM0",
+      "question_count": 1000,
+      "difficulty": "Expert",
+      "focus": "Extensive Practice",
+      "type": "Extensive practice examination"
+    },
+    {
+      "resource_id": "EXAM-04",
+      "title": "Advanced Tutorial",
+      "video_url": "https://youtu.be/su41DE6dyWg",
+      "difficulty": "Advanced",
+      "focus": "Deep-dive Strategies",
+      "type": "Deep-dive exam strategies"
+    }
+  ],
+  "task_status": "completed",
+  "artifact_id": "PMBOK7-COURSE-BUILD-001"
+}

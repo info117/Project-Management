@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Petit+Formal+Script&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Dancing+Script:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-bg-deep: var(--bg-deep);
+  --color-glass: var(--glass);
+  --color-glass-border: var(--glass-border);
+  --color-glass-highlight: var(--glass-highlight);
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, Georgia, serif;
+  --font-script: "Petit Formal Script", cursive;
+  --font-handwriting: "Dancing Script", cursive;
+}
+
+:root {
+  /* Default: Sophisticated Brown Theme */
+  --bg-deep: #1c140e;
+  --brand: #c2410c; 
+  --brand-hover: #9a3412;
+  --glass: rgba(28, 20, 14, 0.4);
+  --glass-border: rgba(120, 113, 108, 0.15);
+  --glass-highlight: rgba(120, 113, 108, 0.08);
+  --text-primary: #fafaf9;
+  --text-secondary: #a8a29e;
+}
+
+.theme-midnight {
+  --bg-deep: #110905;
+  --brand: #ea580c;
+  --brand-hover: #c2410c;
+  --glass: rgba(0, 0, 0, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.05);
+  --glass-highlight: rgba(255, 255, 255, 0.03);
+}
+
+.theme-light {
+  --bg-deep: #fdfaf7;
+  --brand: #c2410c; 
+  --brand-hover: #9a3412;
+  --glass: rgba(120, 113, 108, 0.05);
+  --glass-border: rgba(120, 113, 108, 0.1);
+  --glass-highlight: rgba(120, 113, 108, 0.03);
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+}
+
+@layer base {
+  body {
+    @apply antialiased min-h-screen selection:bg-brand/30;
+    background-color: var(--bg-deep);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+@layer components {
+  .glass {
+    backdrop-filter: blur(24px);
+    background-color: var(--glass);
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-card {
+    backdrop-filter: blur(24px);
+    background-color: var(--glass);
+    border: 1px solid var(--glass-border);
+    @apply rounded-2xl overflow-hidden transition-all duration-300;
+  }
+
+  .glass-card:hover {
+    @apply bg-glass-highlight;
+    border-color: var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(99, 102, 241, 0.1); 
+  }
+
+  .theme-light .glass-card:hover {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05); 
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-200;
+    color: var(--text-secondary);
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+    background-color: var(--glass-highlight);
+  }
+
+  .nav-link-active {
+    @apply font-medium;
+    color: var(--text-primary);
+    background-color: var(--glass-highlight);
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 text-white rounded-lg font-bold text-xs transition-all duration-300 shadow-lg;
+    background-color: var(--brand);
+    box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.3);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--brand-hover);
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 text-xs font-bold rounded-lg border transition-all;
+    background-color: var(--glass);
+    border-color: var(--glass-border);
+    color: var(--text-secondary);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--glass-highlight);
+    color: var(--text-primary);
+  }
+}
